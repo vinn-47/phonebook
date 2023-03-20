@@ -1,7 +1,8 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const app = express()
-
+const Person = require('./models/person')
 const cors = require('cors')
 
 app.use(cors())
@@ -56,8 +57,10 @@ app.get('/', (req, res) => {
     res.send('<h1>Homepage</h1>')
 })
 
-app.get('/api/persons', (req, res) => {
-    res.json(persons)
+app.get('/api/persons', (request, response) => {
+    Person.find({}).then(people => {
+        response.json(people)
+    })
 })
 
 app.get('/info', (req, res) => {
@@ -71,23 +74,18 @@ app.get('/info', (req, res) => {
 })
 
 app.get('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const person = persons.find(person => person.id === id)
-
-    if(person) {
+    Person.findById(request.params.id).then(person => {
         response.json(person)
-    } else {
-        response.status(404).end()
-    }
+    })
 })
 
-const generateId = () => {
-    const getRandomInt = (mx) => {
-        return Math.floor(Math.random() * mx)
-    }
+// const generateId = () => {
+//     const getRandomInt = (mx) => {
+//         return Math.floor(Math.random() * mx)
+//     }
 
-    return getRandomInt(persons.length * 1000)
-}
+//     return getRandomInt(persons.length * 1000)
+// }
 
 app.post('/api/persons', (request, response) => {
     const body = request.body
@@ -102,20 +100,20 @@ app.post('/api/persons', (request, response) => {
         })
     }
 
-    if(persons.find(person => person.name === body.name)) {
-        return response.status(400).json({
-            error: 'name must be unique'
-        }) 
-    }
+    // if(persons.find(person => person.name === body.name)) {
+    //     return response.status(400).json({
+    //         error: 'name must be unique'
+    //     }) 
+    // }
 
-    const person = {
+    const person = new Person({
         name: body.name,
         number: body.number,
-        id: generateId(),
-    }
+    })
 
-    persons = persons.concat(person)
-    response.json(person)
+    person.save().then(savedPerson => {
+        response.json(savedPerson)
+    })
 })
 
 app.delete('/api/persons/:id', (request, response) => {
